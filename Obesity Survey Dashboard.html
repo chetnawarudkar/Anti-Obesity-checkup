@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Novo Nordisk · Obesity Opportunity Intelligence Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0B0F1A;
+  --surface:#111827;
+  --surface2:#1A2236;
+  --surface3:#232F47;
+  --border:#2A3651;
+  --text:#E8EDF7;
+  --muted:#7A8BAD;
+  --light:#9BACCF;
+  --o1:#F59E0B;--o1d:#78450A;--o1bg:rgba(245,158,11,0.08);
+  --o2:#3B82F6;--o2d:#1E3A8A;--o2bg:rgba(59,130,246,0.08);
+  --o3:#10B981;--o3d:#064E3B;--o3bg:rgba(16,185,129,0.08);
+  --red:#EF4444;--redbg:rgba(239,68,68,0.1);
+  --purple:#A855F7;--purplebg:rgba(168,85,247,0.1);
+  --sidebar:240px;
+}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow:hidden}
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);min-width:var(--sidebar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:sticky;top:0}
+.sb-brand{padding:20px 16px 14px;border-bottom:1px solid var(--border)}
+.sb-logo{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.sb-orb{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--o1),var(--o2),var(--o3));display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.sb-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.2}
+.sb-sub{font-size:9px;color:var(--muted);letter-spacing:.5px;margin-top:2px}
+.sb-n{font-size:9.5px;color:var(--muted);margin-top:10px;padding:7px 10px;background:var(--surface2);border-radius:7px;text-align:center}
+.sb-n strong{color:var(--text);font-size:18px;display:block;margin-bottom:1px}
+.nav{padding:10px 0;flex:1;overflow-y:auto}
+.nav-section{padding:14px 16px 5px;font-size:8.5px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 16px;cursor:pointer;color:var(--muted);font-size:11.5px;font-weight:500;border-left:3px solid transparent;transition:all .15s;white-space:nowrap}
+.nav-item:hover:not(.active){color:var(--light);background:rgba(255,255,255,0.03)}
+.nav-item.active{color:var(--text);background:rgba(255,255,255,0.05)}
+.nav-item.active[data-opp="1"]{border-left-color:var(--o1);color:var(--o1)}
+.nav-item.active[data-opp="2"]{border-left-color:var(--o2);color:var(--o2)}
+.nav-item.active[data-opp="3"]{border-left-color:var(--o3);color:var(--o3)}
+.nav-item.active[data-opp="0"]{border-left-color:var(--purple);color:var(--purple)}
+.nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--border)}
+.nav-item.active[data-opp="1"] .nav-dot{background:var(--o1)}
+.nav-item.active[data-opp="2"] .nav-dot{background:var(--o2)}
+.nav-item.active[data-opp="3"] .nav-dot{background:var(--o3)}
+.nav-item.active[data-opp="0"] .nav-dot{background:var(--purple)}
+.sb-bottom{padding:12px;border-top:1px solid var(--border)}
+.opp-badge{font-size:8.5px;font-weight:600;border-radius:6px;padding:3px 8px;text-transform:uppercase;letter-spacing:.8px}
+/* BODY */
+.body-wrap{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
+/* FILTER BAR */
+.filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0;z-index:50}
+.fl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;margin-right:3px}
+.fdiv{width:1px;height:22px;background:var(--border);margin:0 4px;flex-shrink:0}
+.fg{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.fg-label{font-size:8.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.7px;white-space:nowrap}
+.chip{padding:3px 9px;border-radius:20px;border:1px solid var(--border);font-size:10px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .13s;white-space:nowrap;user-select:none;background:transparent}
+.chip:hover:not(.active){border-color:var(--light);color:var(--light)}
+.chip.active{color:#fff;border-color:transparent}
+.chip.active[data-grp="gender"]{background:var(--purple);border-color:var(--purple)}
+.chip.active[data-grp="ageGroup"]{background:var(--o2);border-color:var(--o2)}
+.chip.active[data-grp="occupation"]{background:var(--o3);border-color:var(--o3)}
+.chip.active[data-grp="weightClass"]{background:var(--red);border-color:var(--red)}
+.chip.active[data-grp="jobReducedActivity"]{background:var(--o1);border-color:var(--o1)}
+.chip.active[data-grp="stressEating"]{background:var(--purple);border-color:var(--purple)}
+.chip.active[data-grp="awarenessRisk"]{background:var(--o3);border-color:var(--o3)}
+.chip.active[data-grp="drugAccept"]{background:var(--red);border-color:var(--red)}
+.reset-btn{margin-left:auto;padding:3px 11px;border-radius:20px;background:transparent;color:var(--red);border:1px solid rgba(239,68,68,0.4);font-size:10px;font-weight:600;cursor:pointer;transition:all .13s;white-space:nowrap;font-family:'Outfit',sans-serif}
+.reset-btn:hover{background:var(--red);color:#fff}
+.filter-count{font-size:10px;font-weight:700;color:var(--text);background:var(--surface2);border-radius:20px;padding:3px 10px;border:1px solid var(--border)}
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:18px 20px 40px}
+.page{display:none;animation:fi .25s ease}
+.page.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* CARDS */
+.page-header{margin-bottom:16px}
+.page-eyebrow{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+.page-eyebrow.o1{color:var(--o1)}.page-eyebrow.o2{color:var(--o2)}.page-eyebrow.o3{color:var(--o3)}.page-eyebrow.ov{color:var(--purple)}
+.page-title{font-family:'Playfair Display',serif;font-size:22px;line-height:1.2;color:var(--text)}
+.page-title em{font-style:italic}
+.page-sub{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.6}
+.kpi-row{display:grid;gap:10px;margin-bottom:12px}
+.kpi-row.c5{grid-template-columns:repeat(5,1fr)}
+.kpi-row.c4{grid-template-columns:repeat(4,1fr)}
+.kpi-row.c3{grid-template-columns:repeat(3,1fr)}
+.kpi{background:var(--surface);border-radius:10px;padding:14px 13px;border:1px solid var(--border);position:relative;overflow:hidden;cursor:default}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px}
+.kpi.a1::before{background:var(--o1)}.kpi.a2::before{background:var(--o2)}.kpi.a3::before{background:var(--o3)}.kpi.ar::before{background:var(--red)}.kpi.ap::before{background:var(--purple)}
+.kpi-label{font-size:8.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px}
+.kpi-value{font-size:26px;font-weight:800;line-height:1}
+.kpi.a1 .kpi-value{color:var(--o1)}.kpi.a2 .kpi-value{color:var(--o2)}.kpi.a3 .kpi-value{color:var(--o3)}.kpi.ar .kpi-value{color:var(--red)}.kpi.ap .kpi-value{color:var(--purple)}
+.kpi-sub{font-size:9px;color:var(--muted);margin-top:4px;line-height:1.4}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.grid-2-1{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-bottom:12px}
+.grid-1-2{display:grid;grid-template-columns:1fr 1.6fr;gap:12px;margin-bottom:12px}
+.card{background:var(--surface);border-radius:10px;padding:16px;border:1px solid var(--border)}
+.card-title{font-size:10.5px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.card-note{font-size:9.5px;color:var(--muted);margin-top:9px;line-height:1.6;padding-top:9px;border-top:1px solid var(--border)}
+/* BARS */
+.hbar{margin-bottom:7px}
+.hbar:last-child{margin-bottom:0}
+.hbar-top{display:flex;justify-content:space-between;margin-bottom:3px}
+.hbar-label{font-size:10px;color:var(--light);font-weight:500}
+.hbar-val{font-size:10.5px;font-weight:700;color:var(--text)}
+.hbar-track{height:6px;background:var(--surface2);border-radius:20px;overflow:hidden}
+.hbar-fill{height:100%;border-radius:20px;transition:width .7s cubic-bezier(.16,1,.3,1)}
+/* CALLOUT */
+.callout{border-radius:8px;padding:10px 13px;font-size:10.5px;line-height:1.7;margin-top:10px}
+.callout.o1{background:var(--o1bg);border-left:2.5px solid var(--o1);color:#FDE68A}
+.callout.o2{background:var(--o2bg);border-left:2.5px solid var(--o2);color:#BFDBFE}
+.callout.o3{background:var(--o3bg);border-left:2.5px solid var(--o3);color:#6EE7B7}
+.callout.red{background:var(--redbg);border-left:2.5px solid var(--red);color:#FCA5A5}
+.callout.purple{background:var(--purplebg);border-left:2.5px solid var(--purple);color:#E9D5FF}
+/* LEGEND */
+.legend{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--light)}
+.legend-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.legend-pct{margin-left:auto;font-weight:700;color:var(--text);font-size:10.5px}
+.donut-wrap{display:flex;align-items:center;gap:14px}
+/* FUNNEL */
+.funnel-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.funnel-label{font-size:9.5px;color:var(--muted);min-width:120px;font-weight:500}
+.funnel-bar{height:28px;border-radius:5px;display:flex;align-items:center;padding:0 10px;font-size:10px;font-weight:700;color:#fff;transition:width .8s cubic-bezier(.16,1,.3,1);white-space:nowrap;overflow:hidden}
+.funnel-pct{font-size:10px;color:var(--muted);min-width:36px;text-align:right;font-weight:600}
+/* CONCERN TAGS */
+.tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:9.5px;font-weight:600}
+/* OVERVIEW BANNERS */
+.opp-banner{border-radius:12px;padding:18px 20px;margin-bottom:12px;position:relative;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;border:1px solid transparent}
+.opp-banner:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,0.3)}
+.opp-banner.o1{background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.04));border-color:rgba(245,158,11,0.2)}
+.opp-banner.o2{background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.04));border-color:rgba(59,130,246,0.2)}
+.opp-banner.o3{background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(16,185,129,0.04));border-color:rgba(16,185,129,0.2)}
+.opp-banner-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.opp-num{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0}
+.opp-num.o1{background:rgba(245,158,11,0.15);color:var(--o1)}
+.opp-num.o2{background:rgba(59,130,246,0.15);color:var(--o2)}
+.opp-num.o3{background:rgba(16,185,129,0.15);color:var(--o3)}
+.opp-banner-title{font-size:14px;font-weight:700;color:var(--text)}
+.opp-banner-desc{font-size:10.5px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.opp-stats{display:flex;gap:16px}
+.opp-stat{text-align:center}
+.opp-stat-val{font-size:20px;font-weight:800}
+.opp-stat-lbl{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.opp-stat.o1 .opp-stat-val{color:var(--o1)}
+.opp-stat.o2 .opp-stat-val{color:var(--o2)}
+.opp-stat.o3 .opp-stat-val{color:var(--o3)}
+.cta-chip{display:inline-block;font-size:8.5px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.5px;margin-top:8px}
+.cta-chip.o1{background:rgba(245,158,11,0.2);color:var(--o1)}
+.cta-chip.o2{background:rgba(59,130,246,0.2);color:var(--o2)}
+.cta-chip.o3{background:rgba(16,185,129,0.2);color:var(--o3)}
+/* RATING BARS */
+.rating-row{margin-bottom:8px}
+.rating-top{display:flex;justify-content:space-between;margin-bottom:3px;font-size:9.5px}
+.rating-label{color:var(--light);font-weight:500}
+.rating-avg{color:var(--text);font-weight:700}
+.rating-dots{display:flex;gap:2px}
+.rating-dot{height:5px;border-radius:20px;flex:1;background:var(--surface2)}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+/* CANVAS wrapper */
+.chart-wrap{position:relative}
+canvas{max-height:220px}
+/* Tooltip for concern bar */
+.concern-bar-row{margin-bottom:7px}
+.cb-top{display:flex;justify-content:space-between;margin-bottom:3px;font-size:10px}
+.cb-label{color:var(--light);font-weight:500}
+.cb-val{color:var(--text);font-weight:700}
+.cb-track{height:8px;background:var(--surface2);border-radius:20px;overflow:hidden}
+.cb-fill{height:100%;border-radius:20px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">
+      <div class="sb-orb">💊</div>
+      <div>
+        <div class="sb-name">Obesity Intelligence</div>
+        <div class="sb-sub">NOVO NORDISK · TEAM HEXAGON</div>
+      </div>
+    </div>
+    <div class="sb-n"><strong id="sampleN">75</strong>Respondents · Live Filter</div>
+  </div>
+  <nav class="nav" id="nav">
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" data-page="p0" data-opp="0"><span class="nav-dot"></span>All 3 Opportunities</div>
+    <div class="nav-section">Opportunity Spaces</div>
+    <div class="nav-item" data-page="p1" data-opp="1"><span class="nav-dot"></span>1 · Building Trust in Treatment</div>
+    <div class="nav-item" data-page="p2" data-opp="2"><span class="nav-dot"></span>2 · Workplace Wellness</div>
+    <div class="nav-item" data-page="p3" data-opp="3"><span class="nav-dot"></span>3 · Vanity to Vitality</div>
+    <div class="nav-section">Demographics</div>
+    <div class="nav-item" data-page="p4" data-opp="0"><span class="nav-dot"></span>Respondent Profile</div>
+  </nav>
+  <div class="sb-bottom">
+    <div style="font-size:9px;color:var(--muted);text-align:center;line-height:1.6">Survey n=75 · Primary Data<br>Mumbai Region · 2025</div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body-wrap">
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar" id="filterBar">
+    <span class="fl">🔍 Filters:</span>
+
+    <div class="fg">
+      <span class="fg-label">Gender</span>
+      <div class="chip" data-grp="gender" data-val="Female">♀ Female</div>
+      <div class="chip" data-grp="gender" data-val="Male">♂ Male</div>
+    </div>
+    <div class="fdiv"></div>
+
+    <div class="fg">
+      <span class="fg-label">Age</span>
+      <div class="chip" data-grp="ageGroup" data-val="Under 20">&lt;20</div>
+      <div class="chip" data-grp="ageGroup" data-val="20–29">20s</div>
+      <div class="chip" data-grp="ageGroup" data-val="30–39">30s</div>
+      <div class="chip" data-grp="ageGroup" data-val="40–49">40s</div>
+      <div class="chip" data-grp="ageGroup" data-val="50–59">50s</div>
+      <div class="chip" data-grp="ageGroup" data-val="60+">60+</div>
+    </div>
+    <div class="fdiv"></div>
+
+    <div class="fg">
+      <span class="fg-label">Occupation</span>
+      <div class="chip" data-grp="occupation" data-val="Working professional">Working Pro</div>
+      <div class="chip" data-grp="occupation" data-val="Student">Student</div>
+      <div class="chip" data-grp="occupation" data-val="Homemaker">Homemaker</div>
+      <div class="chip" data-grp="occupation" data-val="Retired">Retired</div>
+    </div>
+    <div class="fdiv"></div>
+
+    <div class="fg">
+      <span class="fg-label">Weight</span>
+      <div class="chip" data-grp="weightClass" data-val="Obese">Obese</div>
+      <div class="chip" data-grp="weightClass" data-val="Overweight">Overweight</div>
+      <div class="chip" data-grp="weightClass" data-val="Normal">Normal</div>
+    </div>
+    <div class="fdiv"></div>
+
+    <div class="fg">
+      <span class="fg-label">Job Impact</span>
+      <div class="chip" data-grp="jobReducedActivity" data-val="Significantly">High</div>
+      <div class="chip" data-grp="jobReducedActivity" data-val="Slightly">Slight</div>
+      <div class="chip" data-grp="jobReducedActivity" data-val="No">None</div>
+    </div>
+    <div class="fdiv"></div>
+
+    <div class="fg">
+      <span class="fg-label">Drug Accept.</span>
+      <div class="chip" data-grp="drugAccept" data-val="Yes">Yes</div>
+      <div class="chip" data-grp="drugAccept" data-val="Maybe">Maybe</div>
+      <div class="chip" data-grp="drugAccept" data-val="No">No</div>
+    </div>
+
+    <button class="reset-btn" id="resetBtn">✕ Reset</button>
+    <div class="filter-count" id="filterCount">75 shown</div>
+  </div>
+
+  <!-- MAIN SCROLL -->
+  <div class="main">
+
+    <!-- ===== P0: OVERVIEW ===== -->
+    <div class="page active" id="p0">
+      <div class="page-header">
+        <div class="page-eyebrow ov">Novo Nordisk · Opportunity Analysis</div>
+        <div class="page-title">Three Paths to <em>Market Impact</em></div>
+        <div class="page-sub">Primary survey of <strong id="p0n">75</strong> individuals (BMI >25 majority) across Mumbai. Use filters to slice any scenario.</div>
+      </div>
+
+      <div class="kpi-row c5">
+        <div class="kpi ap"><div class="kpi-label">Total Surveyed</div><div class="kpi-value" id="ov-total">75</div><div class="kpi-sub">Primary data, n=75</div></div>
+        <div class="kpi ar"><div class="kpi-label">Reject Anti-Obesity Drugs</div><div class="kpi-value" id="ov-drugno">63%</div><div class="kpi-sub">Even if doctor-advised</div></div>
+        <div class="kpi a1"><div class="kpi-label">Unaware of Rx Meds</div><div class="kpi-value" id="ov-unawarex">32%</div><div class="kpi-sub">Prescription options exist</div></div>
+        <div class="kpi a2"><div class="kpi-label">Job Reduced Activity</div><div class="kpi-value" id="ov-jobreduced">68%</div><div class="kpi-sub">Significantly or slightly</div></div>
+        <div class="kpi a3"><div class="kpi-label">Community Obesity Rising</div><div class="kpi-value" id="ov-rising">77%</div><div class="kpi-sub">Yes or Maybe response</div></div>
+      </div>
+
+      <div id="opp-banners">
+        <div class="opp-banner o1" onclick="goTo('p1')">
+          <div class="opp-banner-header">
+            <div class="opp-num o1">1</div>
+            <div>
+              <div class="opp-banner-title">Building Trust in Treatment</div>
+              <span class="opp-badge" style="background:rgba(245,158,11,0.15);color:var(--o1);font-size:8px;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.7px;font-weight:700">Trust · Awareness · Pharma</span>
+            </div>
+          </div>
+          <div class="opp-banner-desc">A massive trust gap exists — 63% refuse anti-obesity drugs even on medical advice. The biggest barrier is fear of side effects. Novo Nordisk must build awareness, share safety data, and win patient trust before medication is even considered.</div>
+          <div class="opp-stats">
+            <div class="opp-stat o1"><div class="opp-stat-val" id="b1-drugno">63%</div><div class="opp-stat-lbl">Reject AOMs</div></div>
+            <div class="opp-stat o1"><div class="opp-stat-val" id="b1-sideeff">73%</div><div class="opp-stat-lbl">Fear Side Effects</div></div>
+            <div class="opp-stat o1"><div class="opp-stat-val" id="b1-unawarepc">32%</div><div class="opp-stat-lbl">Unaware of Rx Meds</div></div>
+            <div class="opp-stat o1"><div class="opp-stat-val" id="b1-usedpct">5%</div><div class="opp-stat-lbl">Ever Used AOM</div></div>
+          </div>
+          <div class="cta-chip o1">→ Click to Explore</div>
+        </div>
+
+        <div class="opp-banner o2" onclick="goTo('p2')">
+          <div class="opp-banner-header">
+            <div class="opp-num o2">2</div>
+            <div>
+              <div class="opp-banner-title">Workplace Wellness</div>
+              <span class="opp-badge" style="background:rgba(59,130,246,0.15);color:var(--o2);font-size:8px;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.7px;font-weight:700">Corporate · Sedentary · B2B</span>
+            </div>
+          </div>
+          <div class="opp-banner-desc">Work timings are the #1 structural driver of physical inactivity and weight gain. 51% of working professionals sit >8 hours daily. Embedding Novo Nordisk-branded wellness into corporate programs creates a direct pipeline to the highest-BMI segment.</div>
+          <div class="opp-stats">
+            <div class="opp-stat o2"><div class="opp-stat-val" id="b2-wpct">51%</div><div class="opp-stat-lbl">Working Professionals</div></div>
+            <div class="opp-stat o2"><div class="opp-stat-val" id="b2-sitting">68%</div><div class="opp-stat-lbl">Sit 6+ Hrs/day</div></div>
+            <div class="opp-stat o2"><div class="opp-stat-val" id="b2-jobreduced">68%</div><div class="opp-stat-lbl">Job Reduced Activity</div></div>
+            <div class="opp-stat o2"><div class="opp-stat-val" id="b2-nexercise">27%</div><div class="opp-stat-lbl">Never Exercise</div></div>
+          </div>
+          <div class="cta-chip o2">→ Click to Explore</div>
+        </div>
+
+        <div class="opp-banner o3" onclick="goTo('p3')">
+          <div class="opp-banner-header">
+            <div class="opp-num o3">3</div>
+            <div>
+              <div class="opp-banner-title">From Vanity to Vitality</div>
+              <span class="opp-badge" style="background:rgba(16,185,129,0.15);color:var(--o3);font-size:8px;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.7px;font-weight:700">Narrative · Culture · Community</span>
+            </div>
+          </div>
+          <div class="opp-banner-desc">Indians associate weight-loss with vanity — not health urgency. Campaigns must reframe obesity as an organ-protection issue. 45 respondents live near crowded food joints; community-level environmental barriers are real and must be addressed.</div>
+          <div class="opp-stats">
+            <div class="opp-stat o3"><div class="opp-stat-val" id="b3-notserious">32%</div><div class="opp-stat-lbl">Not a health concern</div></div>
+            <div class="opp-stat o3"><div class="opp-stat-val" id="b3-foodjoints">59%</div><div class="opp-stat-lbl">Crowded Food Joints</div></div>
+            <div class="opp-stat o3"><div class="opp-stat-val" id="b3-community">77%</div><div class="opp-stat-lbl">Obesity Rising</div></div>
+            <div class="opp-stat o3"><div class="opp-stat-val" id="b3-familycomment">45%</div><div class="opp-stat-lbl">Family Comments Weight</div></div>
+          </div>
+          <div class="cta-chip o3">→ Click to Explore</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== P1: BUILDING TRUST ===== -->
+    <div class="page" id="p1">
+      <div class="page-header">
+        <div class="page-eyebrow o1">Opportunity Space 1 · Trust & Pharma</div>
+        <div class="page-title">Building <em>Trust</em> in Treatment</div>
+        <div class="page-sub">Awareness exists, but willingness to use prescription medications is critically low. <strong id="p1n">75</strong> respondents analysed.</div>
+      </div>
+
+      <div class="kpi-row c4">
+        <div class="kpi a1"><div class="kpi-label">Reject AOMs</div><div class="kpi-value" id="p1-drugno">63%</div><div class="kpi-sub">Even when doctor-recommended</div></div>
+        <div class="kpi a1"><div class="kpi-label">Aware of Prescription Meds</div><div class="kpi-value" id="p1-awarex">68%</div><div class="kpi-sub">Know Rx options exist</div></div>
+        <div class="kpi ar"><div class="kpi-label">Fear Side Effects</div><div class="kpi-value" id="p1-sideeff">73%</div><div class="kpi-sub">Top barrier to AOM use</div></div>
+        <div class="kpi ap"><div class="kpi-label">Ever Used AOM</div><div class="kpi-value" id="p1-used">5%</div><div class="kpi-sub">Only 4 of 75 respondents</div></div>
+      </div>
+
+      <div class="grid-2-1">
+        <div class="card">
+          <div class="card-title">💊 Drug Acceptance by Occupation</div>
+          <canvas id="ch-drug-occ" height="200"></canvas>
+          <div class="card-note">Working professionals show the highest Yes rate (16%), while students and homemakers remain more hesitant.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚠️ Drug Willingness Split</div>
+          <div class="donut-wrap" style="margin-top:8px">
+            <canvas id="ch-drug-donut" width="130" height="130" style="max-height:130px;width:130px;flex-shrink:0"></canvas>
+            <div class="legend" id="drug-legend"></div>
+          </div>
+          <div class="callout o1" style="margin-top:12px">Only <strong>13%</strong> would firmly accept — the critical adoption nucleus for early campaigns.</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🚧 Top Concerns About Anti-Obesity Medications</div>
+          <div id="concern-bars"></div>
+          <div class="card-note">Side effects dominate across every demographic. Addressing long-term safety data is the #1 lever to unlock the 24% "Maybe" segment.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">💡 Drug Acceptance by Weight Class</div>
+          <canvas id="ch-drug-weight" height="200"></canvas>
+          <div class="card-note">Ironically, obese respondents are not significantly more open than overweight ones — emotional barriers override clinical urgency.</div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">🏥 Treatment Preference</div>
+          <div id="treat-pref-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🧠 Awareness of Risk</div>
+          <canvas id="ch-awareness" height="180"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 Obesity = Medical Condition? (1–5)</div>
+          <div id="obesity-medical-bars"></div>
+          <div class="card-note">Higher score = stronger belief that obesity is medical, not just lifestyle.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== P2: WORKPLACE WELLNESS ===== -->
+    <div class="page" id="p2">
+      <div class="page-header">
+        <div class="page-eyebrow o2">Opportunity Space 2 · Corporate Wellness</div>
+        <div class="page-title">The <em>Workplace</em> Obesity Crisis</div>
+        <div class="page-sub">Sedentary work culture is the #1 structural driver. <strong id="p2n">75</strong> respondents analysed.</div>
+      </div>
+
+      <div class="kpi-row c4">
+        <div class="kpi a2"><div class="kpi-label">Sit 6+ Hours Daily</div><div class="kpi-value" id="p2-sit6">77%</div><div class="kpi-sub">Work + leisure combined</div></div>
+        <div class="kpi a2"><div class="kpi-label">Job Reduced Activity</div><div class="kpi-value" id="p2-jobreduced">68%</div><div class="kpi-sub">Significantly + Slightly</div></div>
+        <div class="kpi ar"><div class="kpi-label">Never Exercise</div><div class="kpi-value" id="p2-noex">27%</div><div class="kpi-sub">0 min activity in a week</div></div>
+        <div class="kpi a3"><div class="kpi-label">1–2×/week Only</div><div class="kpi-value" id="p2-lowex">39%</div><div class="kpi-sub">Barely active segment</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">⏰ Daily Sitting Time Distribution</div>
+          <canvas id="ch-sitting" height="200"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">🏃 Exercise Frequency</div>
+          <canvas id="ch-exercise" height="200"></canvas>
+          <div class="card-note">Nearly 67% exercise 1–2 times/week or never. This is the intervention target window.</div>
+        </div>
+      </div>
+
+      <div class="grid-2-1">
+        <div class="card">
+          <div class="card-title">📉 How Job Reduced Physical Activity</div>
+          <div id="jobreduced-bars"></div>
+          <div class="callout o2">Among working professionals: <strong id="wp-significantly">0</strong> reported significant activity reduction, <strong id="wp-slightly">0</strong> slight reduction — directly linked to desk work culture.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">🧘 Stress & Eating Habits</div>
+          <div id="stress-eating-bars"></div>
+          <div class="card-note">Emotional eating compounds physical inactivity — workplace wellness must address mental health too.</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">📊 Weight Gain Cause (Top Drivers)</div>
+          <div id="cause-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔢 Sitting Time vs. Weight Class</div>
+          <canvas id="ch-sit-weight" height="200"></canvas>
+          <div class="card-note">Heavier BMI categories cluster heavily in 6+ hour sitting brackets, confirming the sedentary–obesity link.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== P3: VANITY TO VITALITY ===== -->
+    <div class="page" id="p3">
+      <div class="page-header">
+        <div class="page-eyebrow o3">Opportunity Space 3 · Narrative & Community</div>
+        <div class="page-title">From <em>Vanity</em> to Vitality</div>
+        <div class="page-sub">Reframe obesity as an organ-protection emergency, not a cosmetic issue. <strong id="p3n">75</strong> respondents analysed.</div>
+      </div>
+
+      <div class="kpi-row c4">
+        <div class="kpi a3"><div class="kpi-label">Weight "Not a Serious Concern"</div><div class="kpi-value" id="p3-notserious">32%</div><div class="kpi-sub">Score 4–5 on 5-pt scale</div></div>
+        <div class="kpi a3"><div class="kpi-label">Food Joints Crowded Nearby</div><div class="kpi-value" id="p3-joints">59%</div><div class="kpi-sub">Environmental food pressure</div></div>
+        <div class="kpi ar"><div class="kpi-label">Family Comments on Weight</div><div class="kpi-value" id="p3-family">45%</div><div class="kpi-sub">Social pressure present</div></div>
+        <div class="kpi ap"><div class="kpi-label">Neighbourhood Unhealthy</div><div class="kpi-value" id="p3-unhealthy">32%</div><div class="kpi-sub">No parks, gyms, fresh food</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🎯 Psychographic Belief Ratings (avg 1–5)</div>
+          <div id="belief-ratings"></div>
+          <div class="card-note">High weight-awareness but low urgency — people know but don't act. The narrative gap is the opportunity.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">🏘️ Community & Environment</div>
+          <div id="community-bars"></div>
+          <div class="callout o3" style="margin-top:10px">58% believe obesity is rising in their community yet 32% say their neighbourhood offers no healthy infrastructure — an unmet market for community wellness programs.</div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">⏳ When Weight Gain Began</div>
+          <canvas id="ch-weightstart" height="190"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">🌡️ Weight Affects Confidence (1–5)</div>
+          <canvas id="ch-confidence" height="190"></canvas>
+          <div class="card-note">High scores = weight impacts social life. The vanity angle IS real but must be reframed as a vitality issue.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">💪 Weight Methods Tried</div>
+          <div id="methods-bars"></div>
+          <div class="card-note">Almost no one has tried medication — positioning Rx drugs as the "next step after diet+exercise" could resonate.</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🌿 Neighbourhood Healthy Friendliness</div>
+          <div class="donut-wrap" style="margin-top:8px">
+            <canvas id="ch-neighbourhood" width="130" height="130" style="max-height:130px;width:130px;flex-shrink:0"></canvas>
+            <div class="legend" id="neighbourhood-legend"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📢 Food Joints Effect on Eating Habits</div>
+          <div id="foodjoints-bars"></div>
+          <div class="callout o3" style="margin-top:10px">Even when food joints are nearby, many resist their influence — but <strong id="fj-affected">0</strong> admit it does affect their food choices, a key environmental barrier to address.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== P4: RESPONDENT PROFILE ===== -->
+    <div class="page" id="p4">
+      <div class="page-header">
+        <div class="page-eyebrow ov">Respondent Demographics</div>
+        <div class="page-title">Who <em>Answered</em> the Survey</div>
+        <div class="page-sub">Full demographic breakdown of <strong id="p4n">75</strong> respondents.</div>
+      </div>
+
+      <div class="kpi-row c4">
+        <div class="kpi ap"><div class="kpi-label">Mean BMI</div><div class="kpi-value" id="p4-bmi">31.9</div><div class="kpi-sub">Avg across filtered set</div></div>
+        <div class="kpi ar"><div class="kpi-label">Obese (BMI 30+)</div><div class="kpi-value" id="p4-obese">23%</div><div class="kpi-sub">Self-classified as obese</div></div>
+        <div class="kpi a2"><div class="kpi-label">Overweight</div><div class="kpi-value" id="p4-overweight">65%</div><div class="kpi-sub">BMI 25–29.9 range</div></div>
+        <div class="kpi a3"><div class="kpi-label">Family History</div><div class="kpi-value" id="p4-familyhx">45%</div><div class="kpi-sub">Obesity/diabetes/thyroid</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">👤 Age Distribution</div>
+          <canvas id="ch-age" height="200"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">⚖️ Gender Split</div>
+          <div class="donut-wrap" style="margin-top:12px">
+            <canvas id="ch-gender" width="130" height="130" style="max-height:130px;width:130px;flex-shrink:0"></canvas>
+            <div class="legend" id="gender-legend"></div>
+          </div>
+          <div class="card-note">Female respondents form 57% of the sample — aligning with higher healthcare-seeking behaviour.</div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">💼 Occupation Breakdown</div>
+          <div id="occ-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📐 Weight Classification</div>
+          <canvas id="ch-wclass" height="190"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-title">🩺 Regular Health Checkups</div>
+          <div id="checkup-bars"></div>
+          <div class="card-note">Only half go for regular checkups — another trust-building and awareness opportunity.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /body-wrap -->
+
+<script>
+// ===================== DATA =====================
+const RAW = [{"age":79,"ageGroup":"60+","gender":"Female","occupation":"Retired","bmi":33.7,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":">8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Often","weightGainCause":"Physical inactivity","weightNotSerious":2,"obesityMedical":5,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Homeopathic","methodsTried":null,"familyHistory":"No","regularCheckup":"Yes","weightAware":5,"eatingAware":1,"weightControl":2,"weightConfidence":4,"weightFrustration":4,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":22,"ageGroup":"20\u201329","gender":"Male","occupation":"Student","bmi":51.4,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Social stigma","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"4-6 hours","exerciseFreq":"Daily","stressEating":"Always","weightGainCause":"Diet;Stress","weightNotSerious":1,"obesityMedical":1,"awarenessRisk":"Fully aware","neighbourhood":"No","communityObesityRising":"No","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"No","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"No","weightAware":5,"eatingAware":5,"weightControl":3,"weightConfidence":5,"weightFrustration":2,"weightStart":"Teenage","eatPattern":"Irregular or impulsive","processedFood":"Daily","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":17,"ageGroup":"Under 20","gender":"Female","occupation":"Student","bmi":32.0,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Side effects;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"Daily","stressEating":"Always","weightGainCause":"Stress;Medical condition;Medications","weightNotSerious":3,"obesityMedical":4,"awarenessRisk":"Fully aware","neighbourhood":"Maybe","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Homeopathic","methodsTried":"Diet plans;Exercise;Medical consultation","familyHistory":"Yes","regularCheckup":"No","weightAware":5,"eatingAware":5,"weightControl":2,"weightConfidence":5,"weightFrustration":4,"weightStart":"Childhood","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":16,"ageGroup":"Under 20","gender":"Female","occupation":"Student","bmi":33.2,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":"4-6 hours","exerciseFreq":"3-4 days/week","stressEating":"Always","weightGainCause":"Physical inactivity","weightNotSerious":3,"obesityMedical":5,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Naturopathy","methodsTried":"Exercise","familyHistory":"Yes","regularCheckup":"No","weightAware":4,"eatingAware":5,"weightControl":4,"weightConfidence":5,"weightFrustration":5,"weightStart":"Teenage","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":87,"ageGroup":"60+","gender":"Male","occupation":"Retired","bmi":28.7,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects;Cost","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"Never","stressEating":"Sometimes","weightGainCause":"Medical condition","weightNotSerious":4,"obesityMedical":4,"awarenessRisk":"Fully aware","neighbourhood":"Maybe","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"No","regularCheckup":"Yes","weightAware":4,"eatingAware":3,"weightControl":3,"weightConfidence":2,"weightFrustration":1,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":54,"ageGroup":"50\u201359","gender":"Female","occupation":"Working professional","bmi":29.7,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"4-6 hours","exerciseFreq":"Never","stressEating":"Never","weightGainCause":"Coombination of demographic factors","weightNotSerious":2,"obesityMedical":2,"awarenessRisk":"Fully aware","neighbourhood":"No","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"No","regularCheckup":"Yes","weightAware":4,"eatingAware":4,"weightControl":3,"weightConfidence":2,"weightFrustration":1,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":25,"ageGroup":"20\u201329","gender":"Female","occupation":"Student","bmi":30.1,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Cost;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"3-4 days/week","stressEating":"Sometimes","weightGainCause":"Medical condition","weightNotSerious":1,"obesityMedical":3,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"No","treatmentPref":"Allopathic","methodsTried":"Exercise","familyHistory":"No","regularCheckup":"Yes","weightAware":5,"eatingAware":4,"weightControl":3,"weightConfidence":4,"weightFrustration":3,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":46,"ageGroup":"40\u201349","gender":"Female","occupation":"Working professional","bmi":32.8,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Cost;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Coombination of demographic factors","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"No","regularCheckup":"Yes","weightAware":4,"eatingAware":4,"weightControl":4,"weightConfidence":3,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":25,"ageGroup":"20\u201329","gender":"Male","occupation":"Working professional","bmi":34.9,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Side effects;Cost","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Diet","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"No","treatmentPref":"Allopathic","methodsTried":"Exercise","familyHistory":"Yes","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":4,"weightConfidence":3,"weightFrustration":2,"weightStart":"Childhood","eatPattern":"Depends on workload","processedFood":"3-5 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":51,"ageGroup":"50\u201359","gender":"Female","occupation":"Homemaker","bmi":35.2,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost;Dependency","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"No","sittingTime":"6-8 hours","exerciseFreq":"Never","stressEating":"Sometimes","weightGainCause":"Medical condition","weightNotSerious":3,"obesityMedical":4,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"Yes","regularCheckup":"Yes","weightAware":5,"eatingAware":4,"weightControl":3,"weightConfidence":2,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":20,"ageGroup":"20\u201329","gender":"Male","occupation":"Student","bmi":34.6,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Maybe","treatmentPref":"Allopathic","methodsTried":"Exercise","familyHistory":"Yes","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":3,"weightConfidence":2,"weightFrustration":3,"weightStart":"Childhood","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":21,"ageGroup":"20\u201329","gender":"Female","occupation":"Student","bmi":35.6,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Side effects;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":"6-8 hours","exerciseFreq":"Never","stressEating":"Always","weightGainCause":"Diet;Physical inactivity;Coombination of demographic factors","weightNotSerious":4,"obesityMedical":5,"awarenessRisk":"Somewhat aware","neighbourhood":"Maybe","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Homeopathic","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"No","weightAware":5,"eatingAware":3,"weightControl":2,"weightConfidence":5,"weightFrustration":4,"weightStart":"Teenage","eatPattern":"Irregular or impulsive","processedFood":"Daily","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":41,"ageGroup":"40\u201349","gender":"Female","occupation":"Working professional","bmi":33.3,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Cost","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"No","sittingTime":"4-6 hours","exerciseFreq":"Never","stressEating":"Sometimes","weightGainCause":"Coombination of demographic factors","weightNotSerious":3,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"Don't know","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":4,"weightConfidence":4,"weightFrustration":2,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":24,"ageGroup":"20\u201329","gender":"Male","occupation":"Working professional","bmi":37.9,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":"6-8 hours","exerciseFreq":"Daily","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity","weightNotSerious":1,"obesityMedical":4,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise;Medical consultation;Medications","familyHistory":"Yes","regularCheckup":"Yes","weightAware":4,"eatingAware":4,"weightControl":4,"weightConfidence":1,"weightFrustration":5,"weightStart":"Childhood","eatPattern":"Irregular or impulsive","processedFood":"1-2 times/week","sleepDuration":"> 7 hours","pollutionNature":"Maybe"},{"age":48,"ageGroup":"40\u201349","gender":"Male","occupation":"Working professional","bmi":32.3,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Cost;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"Daily","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity;Stress","weightNotSerious":4,"obesityMedical":2,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Maybe","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"No","regularCheckup":"No","weightAware":5,"eatingAware":4,"weightControl":3,"weightConfidence":3,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Depends on workload","processedFood":"3-5 times/week","sleepDuration":"5-6 hours","pollutionNature":"Maybe"},{"age":47,"ageGroup":"40\u201349","gender":"Female","occupation":"Working professional","bmi":32.3,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"Never","stressEating":"Never","weightGainCause":"Physical inactivity","weightNotSerious":4,"obesityMedical":5,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Maybe","treatmentPref":"Allopathic","methodsTried":"Diet plans","familyHistory":"Yes","regularCheckup":"Yes","weightAware":5,"eatingAware":4,"weightControl":4,"weightConfidence":5,"weightFrustration":3,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"Rarely","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":71,"ageGroup":"60+","gender":"Female","occupation":"Retired","bmi":22.3,"weightClass":"Normal","drugAccept":"No","drugConcerns":"Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"Daily","stressEating":"Often","weightGainCause":"Coombination of demographic factors","weightNotSerious":4,"obesityMedical":5,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"No","regularCheckup":"Yes","weightAware":2,"eatingAware":2,"weightControl":5,"weightConfidence":1,"weightFrustration":1,"weightStart":"Teenage","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":47,"ageGroup":"40\u201349","gender":"Female","occupation":"Working professional","bmi":30.5,"weightClass":"Overweight","drugAccept":"Yes","drugConcerns":"Cost;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"3-4 days/week","stressEating":"Sometimes","weightGainCause":"Physical inactivity;Medications","weightNotSerious":5,"obesityMedical":3,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Yes","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"Yes","regularCheckup":"Yes","weightAware":5,"eatingAware":5,"weightControl":5,"weightConfidence":1,"weightFrustration":2,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"> 7 hours","pollutionNature":"Yes"},{"age":27,"ageGroup":"20\u201329","gender":"Female","occupation":"Working professional","bmi":32.0,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Always","weightGainCause":"Diet;Stress;Medical condition","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Fully aware","neighbourhood":"Maybe","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Maybe","familyComments":"Yes","treatmentPref":"Ayurvedic","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"Yes","weightAware":5,"eatingAware":5,"weightControl":4,"weightConfidence":5,"weightFrustration":3,"weightStart":"Teenage","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":65,"ageGroup":"60+","gender":"Male","occupation":"Retired","bmi":40.4,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":"<4 hours","exerciseFreq":"Daily","stressEating":"Never","weightGainCause":"Coombination of demographic factors","weightNotSerious":2,"obesityMedical":3,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"Yes","weightAware":4,"eatingAware":5,"weightControl":5,"weightConfidence":2,"weightFrustration":4,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":27,"ageGroup":"20\u201329","gender":"Male","occupation":"Student","bmi":29.3,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Side effects;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"3-4 days/week","stressEating":"Often","weightGainCause":"Stress;Medical condition","weightNotSerious":1,"obesityMedical":3,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Yes","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"No","regularCheckup":"Yes","weightAware":5,"eatingAware":5,"weightControl":1,"weightConfidence":3,"weightFrustration":5,"weightStart":"Early Adulthood","eatPattern":"Depends on workload","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":65,"ageGroup":"60+","gender":"Female","occupation":"Homemaker","bmi":32.4,"weightClass":"Obese","drugAccept":"Maybe","drugConcerns":"Side effects;Cost;Dependency","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"Never","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity;Medical condition","weightNotSerious":3,"obesityMedical":3,"awarenessRisk":"Somewhat aware","neighbourhood":"Maybe","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"Yes","regularCheckup":"No","weightAware":4,"eatingAware":2,"weightControl":1,"weightConfidence":2,"weightFrustration":1,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"Rarely","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":23,"ageGroup":"20\u201329","gender":"Female","occupation":"Student","bmi":18.0,"weightClass":"Underweight","drugAccept":"No","drugConcerns":"Side effects;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Often","weightGainCause":"Physical inactivity;Stress","weightNotSerious":3,"obesityMedical":1,"awarenessRisk":"Fully aware","neighbourhood":"Maybe","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Naturopathy","methodsTried":null,"familyHistory":"Don't know","regularCheckup":"Yes","weightAware":2,"eatingAware":5,"weightControl":3,"weightConfidence":3,"weightFrustration":1,"weightStart":"Recent years","eatPattern":"Depends on workload","processedFood":"Rarely","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":19,"ageGroup":"Under 20","gender":"Female","occupation":"Student","bmi":32.5,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost;Dependency","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Diet;Physical inactivity","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Maybe","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"Yes","regularCheckup":"No","weightAware":4,"eatingAware":3,"weightControl":3,"weightConfidence":4,"weightFrustration":3,"weightStart":"Teenage","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":33,"ageGroup":"30\u201339","gender":"Female","occupation":"Working professional","bmi":43.7,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Dependency","awarePrescription":"Yes","usedDrug":"Yes","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Maybe","treatmentPref":"Allopathic","methodsTried":"Diet plans;Medications","familyHistory":"Yes","regularCheckup":"Yes","weightAware":5,"eatingAware":5,"weightControl":4,"weightConfidence":3,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":52,"ageGroup":"50\u201359","gender":"Female","occupation":"Homemaker","bmi":29.1,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost;Long term safety","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"No","sittingTime":"6-8 hours","exerciseFreq":"Never","stressEating":"Never","weightGainCause":"Physical inactivity","weightNotSerious":4,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Homeopathic","methodsTried":null,"familyHistory":"No","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":3,"weightConfidence":2,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":39,"ageGroup":"30\u201339","gender":"Female","occupation":"Working professional","bmi":46.1,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects;Cost;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"Yes","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Diet;Physical inactivity","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Medical consultation","familyHistory":"Yes","regularCheckup":"Yes","weightAware":5,"eatingAware":5,"weightControl":3,"weightConfidence":4,"weightFrustration":3,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":52,"ageGroup":"50\u201359","gender":"Female","occupation":"Working professional","bmi":31.6,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"3-4 days/week","stressEating":"Never","weightGainCause":"Diet;Physical inactivity","weightNotSerious":4,"obesityMedical":5,"awarenessRisk":"Fully aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Homeopathic","methodsTried":"Exercise","familyHistory":"No","regularCheckup":"Yes","weightAware":4,"eatingAware":4,"weightControl":4,"weightConfidence":2,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":20,"ageGroup":"20\u201329","gender":"Male","occupation":"Student","bmi":33.8,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"Yes","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":2,"weightConfidence":2,"weightFrustration":3,"weightStart":"Teenage","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":32,"ageGroup":"30\u201339","gender":"Female","occupation":"Working professional","bmi":36.6,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects;Cost;Long term safety","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity","weightNotSerious":2,"obesityMedical":2,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"Yes","regularCheckup":"Yes","weightAware":5,"eatingAware":4,"weightControl":3,"weightConfidence":4,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":62,"ageGroup":"60+","gender":"Male","occupation":"Working professional","bmi":33.6,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Side effects;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"Daily","stressEating":"Never","weightGainCause":"Physical inactivity;Medical condition;Medications","weightNotSerious":1,"obesityMedical":3,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Maybe","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Homeopathic","methodsTried":"Exercise","familyHistory":"Don't know","regularCheckup":"No","weightAware":5,"eatingAware":4,"weightControl":2,"weightConfidence":1,"weightFrustration":2,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"3-5 times/week","sleepDuration":"5-6 hours","pollutionNature":"Yes"},{"age":44,"ageGroup":"40\u201349","gender":"Female","occupation":"Working professional","bmi":40.6,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost;Long term safety","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Physical inactivity;Stress","weightNotSerious":2,"obesityMedical":2,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Exercise","familyHistory":"Yes","regularCheckup":"Yes","weightAware":4,"eatingAware":4,"weightControl":4,"weightConfidence":2,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"Rarely","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":22,"ageGroup":"20\u201329","gender":"Male","occupation":"Student","bmi":32.8,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Coombination of demographic factors","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"Maybe","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Maybe","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"Don't know","regularCheckup":"Yes","weightAware":1,"eatingAware":4,"weightControl":2,"weightConfidence":4,"weightFrustration":2,"weightStart":"Childhood","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":27,"ageGroup":"20\u201329","gender":"Female","occupation":"Working professional","bmi":34.1,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"4-6 hours","exerciseFreq":"Daily","stressEating":"Sometimes","weightGainCause":"Physical inactivity","weightNotSerious":2,"obesityMedical":3,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Homeopathic","methodsTried":"Diet plans;Exercise","familyHistory":"No","regularCheckup":"Yes","weightAware":5,"eatingAware":4,"weightControl":2,"weightConfidence":1,"weightFrustration":4,"weightStart":"Teenage","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"Maybe"},{"age":50,"ageGroup":"50\u201359","gender":"Female","occupation":"Homemaker","bmi":29.1,"weightClass":"Obese","drugAccept":"Yes","drugConcerns":"Side effects;Cost;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"Yes","jobReducedActivity":"No","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity;Coombination of demographic factors","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"No","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Homeopathic","methodsTried":"Diet plans;Exercise;Medications","familyHistory":"Don't know","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":2,"weightConfidence":3,"weightFrustration":4,"weightStart":"Teenage","eatPattern":"Irregular or impulsive","processedFood":"1-2 times/week","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":39,"ageGroup":"30\u201339","gender":"Female","occupation":"Working professional","bmi":27.0,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"Daily","stressEating":"Sometimes","weightGainCause":"Coombination of demographic factors","weightNotSerious":3,"obesityMedical":4,"awarenessRisk":"Fully aware","neighbourhood":"No","communityObesityRising":"No","foodJointsCrowded":"Yes","foodJointsAffect":"Maybe","familyComments":"Maybe","treatmentPref":"Allopathic","methodsTried":"Diet plans","familyHistory":"No","regularCheckup":"Yes","weightAware":4,"eatingAware":4,"weightControl":4,"weightConfidence":4,"weightFrustration":4,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"3-5 times/week","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":43,"ageGroup":"40\u201349","gender":"Male","occupation":"Working professional","bmi":30.1,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Long term safety","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"No","sittingTime":">8 hours","exerciseFreq":"Daily","stressEating":"Sometimes","weightGainCause":"Stress","weightNotSerious":5,"obesityMedical":3,"awarenessRisk":"Not aware","neighbourhood":"Yes","communityObesityRising":"Yes","foodJointsCrowded":"No","foodJointsAffect":"Yes","familyComments":"No","treatmentPref":"Allopathic","methodsTried":"Exercise","familyHistory":"Don't know","regularCheckup":"No","weightAware":2,"eatingAware":3,"weightControl":5,"weightConfidence":1,"weightFrustration":2,"weightStart":"Recent years","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"6-7 hours","pollutionNature":"Maybe"},{"age":50,"ageGroup":"50\u201359","gender":"Female","occupation":"Working professional","bmi":31.5,"weightClass":"Normal","drugAccept":"Yes","drugConcerns":"Side effects","awarePrescription":"Yes","usedDrug":"Yes","jobReducedActivity":"No","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Physical inactivity;Stress","weightNotSerious":5,"obesityMedical":4,"awarenessRisk":"Fully aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Medical consultation;Medications","familyHistory":"Yes","regularCheckup":"Yes","weightAware":3,"eatingAware":5,"weightControl":5,"weightConfidence":3,"weightFrustration":3,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":35,"ageGroup":"30\u201339","gender":"Male","occupation":"Working professional","bmi":29.4,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Side effects;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"Never","stressEating":"Often","weightGainCause":"Diet;Physical inactivity;Medical condition;Coombination of demographic factors","weightNotSerious":2,"obesityMedical":3,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Maybe","treatmentPref":"Allopathic","methodsTried":"Diet plans","familyHistory":"Don't know","regularCheckup":"Yes","weightAware":5,"eatingAware":5,"weightControl":1,"weightConfidence":4,"weightFrustration":4,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"Daily","sleepDuration":"> 7 hours","pollutionNature":"Maybe"},{"age":52,"ageGroup":"50\u201359","gender":"Female","occupation":"Homemaker","bmi":29.3,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":">8 hours","exerciseFreq":"Daily","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity","weightNotSerious":4,"obesityMedical":3,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Yes","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"Yes","weightAware":4,"eatingAware":2,"weightControl":4,"weightConfidence":2,"weightFrustration":1,"weightStart":"Recent years","eatPattern":"Irregular or impulsive","processedFood":"Rarely","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":37,"ageGroup":"30\u201339","gender":"Female","occupation":"Working professional","bmi":33.1,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Side effects;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":"<4 hours","exerciseFreq":"Never","stressEating":"Never","weightGainCause":"Physical inactivity;Stress;Medical condition","weightNotSerious":2,"obesityMedical":2,"awarenessRisk":"Fully aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"Don't know","regularCheckup":"No","weightAware":5,"eatingAware":5,"weightControl":2,"weightConfidence":4,"weightFrustration":4,"weightStart":"Recent years","eatPattern":"Depends on workload","processedFood":"1-2 times/week","sleepDuration":"<5 hours","pollutionNature":"Yes"},{"age":28,"ageGroup":"20\u201329","gender":"Male","occupation":"Working professional","bmi":33.1,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects;Cost;Long term safety","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"Never","stressEating":"Often","weightGainCause":"Physical inactivity;Stress","weightNotSerious":3,"obesityMedical":3,"awarenessRisk":"Fully aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Ayurvedic","methodsTried":"Exercise","familyHistory":"No","regularCheckup":"No","weightAware":5,"eatingAware":5,"weightControl":4,"weightConfidence":1,"weightFrustration":1,"weightStart":"Recent years","eatPattern":"Depends on workload","processedFood":"3-5 times/week","sleepDuration":"<5 hours","pollutionNature":"No"},{"age":47,"ageGroup":"40\u201349","gender":"Male","occupation":"Working professional","bmi":31.5,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Long term safety","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"No","sittingTime":"4-6 hours","exerciseFreq":"Never","stressEating":"Never","weightGainCause":"Physical inactivity;Stress","weightNotSerious":3,"obesityMedical":1,"awarenessRisk":"Somewhat aware","neighbourhood":"Maybe","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"No","treatmentPref":"Homeopathic","methodsTried":null,"familyHistory":"No","regularCheckup":"No","weightAware":4,"eatingAware":5,"weightControl":3,"weightConfidence":3,"weightFrustration":4,"weightStart":"Recent years","eatPattern":"Depends on workload","processedFood":"Rarely","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":25,"ageGroup":"20\u201329","gender":"Female","occupation":"Student","bmi":32.7,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost;Long term safety","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"Never","stressEating":"Never","weightGainCause":"Physical inactivity;Stress","weightNotSerious":4,"obesityMedical":4,"awarenessRisk":"Fully aware","neighbourhood":"Maybe","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Ayurvedic","methodsTried":null,"familyHistory":"No","regularCheckup":"No","weightAware":5,"eatingAware":5,"weightControl":2,"weightConfidence":5,"weightFrustration":1,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":34,"ageGroup":"30\u201339","gender":"Male","occupation":"Homemaker","bmi":37.1,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Social stigma","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"Never","stressEating":"Often","weightGainCause":"Physical inactivity;Stress","weightNotSerious":4,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"No","foodJointsAffect":"Yes","familyComments":"No","treatmentPref":"Homeopathic","methodsTried":"Diet plans","familyHistory":"Yes","regularCheckup":"Yes","weightAware":4,"eatingAware":3,"weightControl":3,"weightConfidence":2,"weightFrustration":3,"weightStart":"Teenage","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"<5 hours","pollutionNature":"Yes"},{"age":29,"ageGroup":"20\u201329","gender":"Female","occupation":"Working professional","bmi":29.2,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Side effects;Cost;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":">8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity;Stress;Medications","weightNotSerious":4,"obesityMedical":3,"awarenessRisk":"Somewhat aware","neighbourhood":"Maybe","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"Yes","weightAware":5,"eatingAware":5,"weightControl":4,"weightConfidence":5,"weightFrustration":5,"weightStart":"Early Adulthood","eatPattern":"Depends on workload","processedFood":"3-5 times/week","sleepDuration":"> 7 hours","pollutionNature":"Maybe"},{"age":23,"ageGroup":"20\u201329","gender":"Male","occupation":"Student","bmi":28.0,"weightClass":"Obese","drugAccept":"Maybe","drugConcerns":"Side effects;Cost;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":">8 hours","exerciseFreq":"Daily","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"Maybe","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Maybe","familyComments":"Yes","treatmentPref":"Homeopathic","methodsTried":"Diet plans;Exercise","familyHistory":"Don't know","regularCheckup":"Yes","weightAware":5,"eatingAware":4,"weightControl":3,"weightConfidence":4,"weightFrustration":5,"weightStart":"Teenage","eatPattern":"Depends on workload","processedFood":"3-5 times/week","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":24,"ageGroup":"20\u201329","gender":"Male","occupation":"Student","bmi":27.5,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Side effects;Cost","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"3-4 days/week","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity;Stress","weightNotSerious":4,"obesityMedical":2,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"No","weightAware":5,"eatingAware":5,"weightControl":3,"weightConfidence":4,"weightFrustration":3,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"Daily","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":32,"ageGroup":"30\u201339","gender":"Female","occupation":"Homemaker","bmi":32.0,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":">8 hours","exerciseFreq":"Daily","stressEating":"Sometimes","weightGainCause":"Diet;Stress","weightNotSerious":4,"obesityMedical":1,"awarenessRisk":"Somewhat aware","neighbourhood":"Maybe","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Maybe","familyComments":"No","treatmentPref":"Ayurvedic","methodsTried":"Diet plans;Exercise","familyHistory":"No","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":4,"weightConfidence":1,"weightFrustration":3,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":59,"ageGroup":"50\u201359","gender":"Female","occupation":"Retired","bmi":30.4,"weightClass":"Normal","drugAccept":"No","drugConcerns":"Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":"<4 hours","exerciseFreq":"Daily","stressEating":"Never","weightGainCause":"Diet","weightNotSerious":4,"obesityMedical":2,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Ayurvedic","methodsTried":"Exercise","familyHistory":"Don't know","regularCheckup":"Yes","weightAware":2,"eatingAware":3,"weightControl":4,"weightConfidence":1,"weightFrustration":2,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":57,"ageGroup":"50\u201359","gender":"Female","occupation":"Homemaker","bmi":33.6,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":">8 hours","exerciseFreq":"Daily","stressEating":"Sometimes","weightGainCause":"Medical condition;Medications","weightNotSerious":2,"obesityMedical":5,"awarenessRisk":"Somewhat aware","neighbourhood":"Maybe","communityObesityRising":"Yes","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Homeopathic","methodsTried":null,"familyHistory":"Don't know","regularCheckup":"No","weightAware":5,"eatingAware":2,"weightControl":1,"weightConfidence":2,"weightFrustration":3,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"Rarely","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":58,"ageGroup":"50\u201359","gender":"Male","occupation":"Retired","bmi":33.5,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Cost;Long term safety","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"No","sittingTime":"4-6 hours","exerciseFreq":"Never","stressEating":"Never","weightGainCause":"Coombination of demographic factors","weightNotSerious":4,"obesityMedical":3,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Homeopathic","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"Yes","weightAware":4,"eatingAware":4,"weightControl":1,"weightConfidence":1,"weightFrustration":1,"weightStart":"Early Adulthood","eatPattern":"Depends on workload","processedFood":"Rarely","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":23,"ageGroup":"20\u201329","gender":"Male","occupation":"Working professional","bmi":26.8,"weightClass":"Overweight","drugAccept":"Yes","drugConcerns":"Side effects;Cost","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Diet;Physical inactivity","weightNotSerious":4,"obesityMedical":1,"awarenessRisk":"Fully aware","neighbourhood":"Maybe","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Naturopathy","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"No","weightAware":5,"eatingAware":5,"weightControl":4,"weightConfidence":5,"weightFrustration":4,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":24,"ageGroup":"20\u201329","gender":"Male","occupation":"Student","bmi":23.5,"weightClass":"Normal","drugAccept":"Maybe","drugConcerns":"Long term safety","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Medical condition","weightNotSerious":4,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"No","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Ayurvedic","methodsTried":"Medical consultation","familyHistory":"No","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":4,"weightConfidence":4,"weightFrustration":4,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":15,"ageGroup":"Under 20","gender":"Female","occupation":"Student","bmi":29.5,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Cost;Long term safety","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"4-6 hours","exerciseFreq":"1-2 days/ week","stressEating":"Always","weightGainCause":"Physical inactivity","weightNotSerious":3,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Homeopathic","methodsTried":"Exercise","familyHistory":"No","regularCheckup":"No","weightAware":3,"eatingAware":4,"weightControl":4,"weightConfidence":4,"weightFrustration":4,"weightStart":"Childhood","eatPattern":"Irregular or impulsive","processedFood":"1-2 times/week","sleepDuration":"> 7 hours","pollutionNature":"Yes"},{"age":35,"ageGroup":"30\u201339","gender":"Male","occupation":"Working professional","bmi":28.3,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Dependency;Social stigma","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":">8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Diet;Physical inactivity;Stress","weightNotSerious":4,"obesityMedical":1,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Maybe","foodJointsAffect":"No","familyComments":"Maybe","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":4,"weightConfidence":2,"weightFrustration":2,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":25,"ageGroup":"20\u201329","gender":"Female","occupation":"Student","bmi":19.3,"weightClass":"Normal","drugAccept":"No","drugConcerns":"Social stigma","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Diet","weightNotSerious":4,"obesityMedical":5,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"No","treatmentPref":"Allopathic","methodsTried":"Exercise","familyHistory":"No","regularCheckup":"No","weightAware":1,"eatingAware":3,"weightControl":4,"weightConfidence":5,"weightFrustration":3,"weightStart":"Teenage","eatPattern":"Irregular or impulsive","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":37,"ageGroup":"30\u201339","gender":"Male","occupation":"Working professional","bmi":36.6,"weightClass":"Obese","drugAccept":"Yes","drugConcerns":"Side effects;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"3-4 days/week","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity;Stress","weightNotSerious":1,"obesityMedical":3,"awarenessRisk":"Fully aware","neighbourhood":"Maybe","communityObesityRising":"Yes","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Maybe","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"No","regularCheckup":"No","weightAware":5,"eatingAware":5,"weightControl":1,"weightConfidence":1,"weightFrustration":1,"weightStart":"Teenage","eatPattern":"Depends on workload","processedFood":"1-2 times/week","sleepDuration":"<5 hours","pollutionNature":"No"},{"age":46,"ageGroup":"40\u201349","gender":"Male","occupation":"Working professional","bmi":29.0,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":"4-6 hours","exerciseFreq":"Daily","stressEating":"Never","weightGainCause":"Physical inactivity;Stress","weightNotSerious":3,"obesityMedical":1,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Yes","treatmentPref":"Naturopathy","methodsTried":"Exercise","familyHistory":"No","regularCheckup":"No","weightAware":4,"eatingAware":3,"weightControl":4,"weightConfidence":1,"weightFrustration":1,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":32,"ageGroup":"30\u201339","gender":"Female","occupation":"Homemaker","bmi":33.3,"weightClass":"Normal","drugAccept":"Yes","drugConcerns":"Side effects;Cost","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"Daily","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity;Coombination of demographic factors","weightNotSerious":2,"obesityMedical":1,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Ayurvedic","methodsTried":"Diet plans;Exercise;Medical consultation","familyHistory":"Yes","regularCheckup":"No","weightAware":2,"eatingAware":5,"weightControl":4,"weightConfidence":4,"weightFrustration":2,"weightStart":"Childhood","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"5-6 hours","pollutionNature":"Yes"},{"age":19,"ageGroup":"Under 20","gender":"Female","occupation":"Student","bmi":27.1,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"4-6 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Diet;Physical inactivity","weightNotSerious":3,"obesityMedical":3,"awarenessRisk":"Somewhat aware","neighbourhood":"Maybe","communityObesityRising":"Maybe","foodJointsCrowded":"Maybe","foodJointsAffect":"Maybe","familyComments":"Maybe","treatmentPref":"Ayurvedic","methodsTried":"Diet plans;Exercise","familyHistory":"Don't know","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":3,"weightConfidence":1,"weightFrustration":3,"weightStart":"Teenage","eatPattern":"Irregular or impulsive","processedFood":"1-2 times/week","sleepDuration":"> 7 hours","pollutionNature":"Maybe"},{"age":52,"ageGroup":"50\u201359","gender":"Female","occupation":"Homemaker","bmi":35.3,"weightClass":"Overweight","drugAccept":"Yes","drugConcerns":"Cost","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"Never","stressEating":"Sometimes","weightGainCause":"Physical inactivity","weightNotSerious":2,"obesityMedical":4,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"No","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"No","treatmentPref":"Homeopathic","methodsTried":null,"familyHistory":"No","regularCheckup":"No","weightAware":3,"eatingAware":4,"weightControl":3,"weightConfidence":3,"weightFrustration":3,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":28,"ageGroup":"20\u201329","gender":"Male","occupation":"Working professional","bmi":29.4,"weightClass":"Overweight","drugAccept":"Yes","drugConcerns":"Side effects;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"4-6 hours","exerciseFreq":"1-2 days/ week","stressEating":"Always","weightGainCause":"Diet;Physical inactivity;Stress;Medical condition","weightNotSerious":2,"obesityMedical":2,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Diet plans;Medical consultation","familyHistory":"No","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":3,"weightConfidence":4,"weightFrustration":4,"weightStart":"Teenage","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"<5 hours","pollutionNature":"No"},{"age":48,"ageGroup":"40\u201349","gender":"Female","occupation":"Working professional","bmi":26.4,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":"4-6 hours","exerciseFreq":"1-2 days/ week","stressEating":"Always","weightGainCause":"Stress;Medications","weightNotSerious":3,"obesityMedical":1,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Ayurvedic","methodsTried":"Exercise","familyHistory":"Yes","regularCheckup":"Yes","weightAware":3,"eatingAware":4,"weightControl":3,"weightConfidence":2,"weightFrustration":3,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":27,"ageGroup":"20\u201329","gender":"Male","occupation":"Working professional","bmi":30.5,"weightClass":"Overweight","drugAccept":"Yes","drugConcerns":"Side effects;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"3-4 days/week","stressEating":"Often","weightGainCause":"Diet;Physical inactivity;Stress","weightNotSerious":1,"obesityMedical":5,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"No","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"No","regularCheckup":"No","weightAware":5,"eatingAware":5,"weightControl":5,"weightConfidence":1,"weightFrustration":5,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"3-5 times/week","sleepDuration":"5-6 hours","pollutionNature":"Yes"},{"age":52,"ageGroup":"50\u201359","gender":"Male","occupation":"Working professional","bmi":30.8,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":"4-6 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Physical inactivity;Stress","weightNotSerious":4,"obesityMedical":1,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":"Exercise","familyHistory":"Yes","regularCheckup":"Yes","weightAware":4,"eatingAware":3,"weightControl":3,"weightConfidence":2,"weightFrustration":2,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"> 7 hours","pollutionNature":"No"},{"age":35,"ageGroup":"30\u201339","gender":"Female","occupation":"Homemaker","bmi":32.0,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"No","sittingTime":"4-6 hours","exerciseFreq":"3-4 days/week","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity","weightNotSerious":1,"obesityMedical":3,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"No","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"Maybe","treatmentPref":"Homeopathic","methodsTried":"Diet plans;Exercise","familyHistory":"Yes","regularCheckup":"Yes","weightAware":4,"eatingAware":5,"weightControl":2,"weightConfidence":4,"weightFrustration":5,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"> 7 hours","pollutionNature":"Maybe"},{"age":42,"ageGroup":"40\u201349","gender":"Female","occupation":"Working professional","bmi":46.7,"weightClass":"Obese","drugAccept":"Maybe","drugConcerns":"Side effects;Cost;Long term safety","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"Never","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity;Medical condition","weightNotSerious":2,"obesityMedical":2,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Allopathic","methodsTried":null,"familyHistory":"Yes","regularCheckup":"Yes","weightAware":5,"eatingAware":4,"weightControl":2,"weightConfidence":3,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"1-2 times/week","sleepDuration":"5-6 hours","pollutionNature":"Maybe"},{"age":39,"ageGroup":"30\u201339","gender":"Female","occupation":"Working professional","bmi":39.1,"weightClass":"Obese","drugAccept":"No","drugConcerns":"Side effects;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Physical inactivity;Medical condition","weightNotSerious":2,"obesityMedical":2,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"No","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Homeopathic","methodsTried":"Exercise","familyHistory":"Yes","regularCheckup":"Yes","weightAware":4,"eatingAware":4,"weightControl":2,"weightConfidence":2,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Planned and regular","processedFood":"1-2 times/week","sleepDuration":"5-6 hours","pollutionNature":"No"},{"age":32,"ageGroup":"30\u201339","gender":"Female","occupation":"Working professional","bmi":36.5,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Side effects;Long term safety;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"Never","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity","weightNotSerious":2,"obesityMedical":2,"awarenessRisk":"Fully aware","neighbourhood":"Yes","communityObesityRising":"Maybe","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Diet plans;Exercise","familyHistory":"No","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":3,"weightConfidence":2,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":34,"ageGroup":"30\u201339","gender":"Male","occupation":"Working professional","bmi":33.5,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Dependency","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":"6-8 hours","exerciseFreq":"Never","stressEating":"Sometimes","weightGainCause":"Physical inactivity","weightNotSerious":2,"obesityMedical":2,"awarenessRisk":"Somewhat aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"No","treatmentPref":"Allopathic","methodsTried":"Exercise","familyHistory":"No","regularCheckup":"No","weightAware":4,"eatingAware":4,"weightControl":3,"weightConfidence":2,"weightFrustration":2,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"},{"age":23,"ageGroup":"20\u201329","gender":"Male","occupation":"Student","bmi":16.9,"weightClass":"Underweight","drugAccept":"Yes","drugConcerns":"Side effects","awarePrescription":"Yes","usedDrug":"No","jobReducedActivity":"Slightly","sittingTime":"6-8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Often","weightGainCause":"Diet","weightNotSerious":4,"obesityMedical":3,"awarenessRisk":"Fully aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Allopathic","methodsTried":"Exercise","familyHistory":"No","regularCheckup":"No","weightAware":2,"eatingAware":4,"weightControl":4,"weightConfidence":3,"weightFrustration":1,"weightStart":"Recent years","eatPattern":"Depends on workload","processedFood":"1-2 times/week","sleepDuration":"5-6 hours","pollutionNature":"Yes"},{"age":24,"ageGroup":"20\u201329","gender":"Male","occupation":"Student","bmi":20.1,"weightClass":"Normal","drugAccept":"No","drugConcerns":"Cost","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Never","weightGainCause":"Coombination of demographic factors","weightNotSerious":3,"obesityMedical":2,"awarenessRisk":"Not aware","neighbourhood":"Yes","communityObesityRising":"No","foodJointsCrowded":"Yes","foodJointsAffect":"No","familyComments":"No","treatmentPref":"Homeopathic","methodsTried":"Diet plans;Exercise","familyHistory":"No","regularCheckup":"Yes","weightAware":1,"eatingAware":5,"weightControl":5,"weightConfidence":5,"weightFrustration":1,"weightStart":"Recent years","eatPattern":"Planned and regular","processedFood":"Rarely","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":35,"ageGroup":"30\u201339","gender":"Male","occupation":"Working professional","bmi":29.7,"weightClass":"Overweight","drugAccept":"No","drugConcerns":"Side effects;Cost;Long term safety;Dependency","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"Significantly","sittingTime":">8 hours","exerciseFreq":"1-2 days/ week","stressEating":"Sometimes","weightGainCause":"Diet;Physical inactivity","weightNotSerious":2,"obesityMedical":1,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Ayurvedic","methodsTried":"Diet plans;Exercise","familyHistory":"No","regularCheckup":"No","weightAware":5,"eatingAware":4,"weightControl":4,"weightConfidence":4,"weightFrustration":1,"weightStart":"Recent years","eatPattern":"Depends on workload","processedFood":"1-2 times/week","sleepDuration":"6-7 hours","pollutionNature":"Yes"},{"age":25,"ageGroup":"20\u201329","gender":"Male","occupation":"Working professional","bmi":30.3,"weightClass":"Overweight","drugAccept":"Maybe","drugConcerns":"Dependency","awarePrescription":"No","usedDrug":"No","jobReducedActivity":"No","sittingTime":"6-8 hours","exerciseFreq":"Never","stressEating":"Often","weightGainCause":"Diet","weightNotSerious":2,"obesityMedical":3,"awarenessRisk":"Somewhat aware","neighbourhood":"No","communityObesityRising":"Yes","foodJointsCrowded":"Yes","foodJointsAffect":"Yes","familyComments":"Yes","treatmentPref":"Ayurvedic","methodsTried":null,"familyHistory":"Yes","regularCheckup":"No","weightAware":2,"eatingAware":4,"weightControl":2,"weightConfidence":3,"weightFrustration":3,"weightStart":"Early Adulthood","eatPattern":"Irregular or impulsive","processedFood":"3-5 times/week","sleepDuration":"6-7 hours","pollutionNature":"No"}];
+
+// ===================== FILTER STATE =====================
+let activeFilters = {};
+let filteredData = [...RAW];
+const chartInstances = {};
+
+// ===================== FILTER LOGIC =====================
+function applyFilters() {
+  filteredData = RAW.filter(r => {
+    return Object.entries(activeFilters).every(([grp, vals]) =>
+      vals.length === 0 || vals.includes(r[grp])
+    );
+  });
+  document.getElementById('sampleN').textContent = filteredData.length;
+  document.getElementById('filterCount').textContent = filteredData.length + ' shown';
+  renderAll();
+}
+
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const grp = chip.dataset.grp;
+    const val = chip.dataset.val;
+    if (!activeFilters[grp]) activeFilters[grp] = [];
+    if (chip.classList.contains('active')) {
+      chip.classList.remove('active');
+      activeFilters[grp] = activeFilters[grp].filter(v => v !== val);
+    } else {
+      chip.classList.add('active');
+      activeFilters[grp].push(val);
+    }
+    applyFilters();
+  });
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  activeFilters = {};
+  document.querySelectorAll('.chip.active').forEach(c => c.classList.remove('active'));
+  filteredData = [...RAW];
+  document.getElementById('sampleN').textContent = 75;
+  document.getElementById('filterCount').textContent = '75 shown';
+  renderAll();
+});
+
+// ===================== NAV =====================
+function goTo(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  const ni = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+  if (ni) ni.classList.add('active');
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => goTo(item.dataset.page));
+});
+
+// ===================== HELPERS =====================
+const pct = (n, d) => d === 0 ? '0%' : Math.round(n/d*100) + '%';
+const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : '–';
+const count = (arr, key, val) => arr.filter(r => r[key] === val).length;
+const COLORS = {
+  o1:'#F59E0B', o2:'#3B82F6', o3:'#10B981', red:'#EF4444', purple:'#A855F7',
+  muted:'#4B5E82', light:'#6B7FAD'
+};
+const ALPHAS = (c, a) => c + Math.round(a*255).toString(16).padStart(2,'0');
+
+function makeHBars(container, items, color) {
+  const max = Math.max(...items.map(i=>i.val));
+  container.innerHTML = items.map(i => `
+    <div class="hbar">
+      <div class="hbar-top"><span class="hbar-label">${i.label}</span><span class="hbar-val">${i.disp || i.val}</span></div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${max?Math.round(i.val/max*100):0}%;background:${color}"></div></div>
+    </div>`).join('');
+}
+
+function makeChart(id, type, labels, datasets, opts={}) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); }
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  chartInstances[id] = new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: opts.legend !== false, labels: { color: '#7A8BAD', font: { family: 'Outfit', size: 10 }, boxWidth: 10, padding: 8 }},
+        tooltip: { bodyFont: { family: 'Outfit' }, titleFont: { family: 'Outfit' } }
+      },
+      scales: type === 'bar' || type === 'line' ? {
+        x: { ticks: { color: '#7A8BAD', font: { family: 'Outfit', size: 9 } }, grid: { color: '#1E2D47' } },
+        y: { ticks: { color: '#7A8BAD', font: { family: 'Outfit', size: 9 } }, grid: { color: '#1E2D47' }, beginAtZero: true, ...( opts.yMax ? {max:opts.yMax}:{}) }
+      } : {},
+      ...opts
+    }
+  });
+}
+
+// ===================== RENDER FUNCTIONS =====================
+function renderAll() {
+  const d = filteredData;
+  const n = d.length;
+
+  // ---- P0 OVERVIEW ----
+  document.getElementById('p0n').textContent = n;
+  document.getElementById('ov-total').textContent = n;
+  document.getElementById('ov-drugno').textContent = pct(count(d,'drugAccept','No'), n);
+  document.getElementById('ov-unawarex').textContent = pct(count(d,'awarePrescription','No'), n);
+  const jobRedPct = pct(d.filter(r=>r.jobReducedActivity==='Significantly'||r.jobReducedActivity==='Slightly').length, n);
+  document.getElementById('ov-jobreduced').textContent = jobRedPct;
+  document.getElementById('ov-rising').textContent = pct(d.filter(r=>r.communityObesityRising==='Yes'||r.communityObesityRising==='Maybe').length, n);
+
+  // OPP banners
+  const sideEffCount = d.filter(r=>r.drugConcerns&&r.drugConcerns.includes('Side effects')).length;
+  document.getElementById('b1-drugno').textContent = pct(count(d,'drugAccept','No'),n);
+  document.getElementById('b1-sideeff').textContent = pct(sideEffCount,n);
+  document.getElementById('b1-unawarepc').textContent = pct(count(d,'awarePrescription','No'),n);
+  document.getElementById('b1-usedpct').textContent = pct(count(d,'usedDrug','Yes'),n);
+  document.getElementById('b2-wpct').textContent = pct(count(d,'occupation','Working professional'),n);
+  document.getElementById('b2-sitting').textContent = pct(d.filter(r=>r.sittingTime==='6-8 hours'||r.sittingTime==='>8 hours').length,n);
+  document.getElementById('b2-jobreduced').textContent = jobRedPct;
+  document.getElementById('b2-nexercise').textContent = pct(count(d,'exerciseFreq','Never'),n);
+  document.getElementById('b3-notserious').textContent = pct(d.filter(r=>r.weightNotSerious>=4).length,n);
+  document.getElementById('b3-foodjoints').textContent = pct(count(d,'foodJointsCrowded','Yes'),n);
+  document.getElementById('b3-community').textContent = pct(d.filter(r=>r.communityObesityRising==='Yes'||r.communityObesityRising==='Maybe').length,n);
+  document.getElementById('b3-familycomment').textContent = pct(count(d,'familyComments','Yes'),n);
+
+  // ---- P1 TRUST ----
+  document.getElementById('p1n').textContent = n;
+  document.getElementById('p1-drugno').textContent = pct(count(d,'drugAccept','No'),n);
+  document.getElementById('p1-awarex').textContent = pct(count(d,'awarePrescription','Yes'),n);
+  document.getElementById('p1-sideeff').textContent = pct(sideEffCount,n);
+  document.getElementById('p1-used').textContent = pct(count(d,'usedDrug','Yes'),n);
+
+  // Drug Occ grouped bar
+  const occs = ['Working professional','Student','Homemaker','Retired'];
+  const accepts = ['Yes','Maybe','No'];
+  makeChart('ch-drug-occ','bar',occs,accepts.map((a,i)=>({
+    label:a,
+    data:occs.map(o=>count(d.filter(r=>r.occupation===o),'drugAccept',a)),
+    backgroundColor:[COLORS.o3,COLORS.o1,COLORS.red][i]+'CC',
+    borderRadius:4, barPercentage:.7
+  })),{legend:true,plugins:{legend:{position:'bottom'}}});
+
+  // Drug donut
+  const drugVals = [count(d,'drugAccept','Yes'),count(d,'drugAccept','Maybe'),count(d,'drugAccept','No')];
+  const drugColors = [COLORS.o3,COLORS.o1,COLORS.red];
+  makeChart('ch-drug-donut','doughnut',['Yes','Maybe','No'],[{data:drugVals,backgroundColor:drugColors.map(c=>c+'CC'),borderWidth:0,hoverOffset:4}],{legend:false,cutout:'70%'});
+  document.getElementById('drug-legend').innerHTML = ['Yes','Maybe','No'].map((l,i)=>`
+    <div class="legend-item"><span class="legend-dot" style="background:${drugColors[i]}"></span>${l}<span class="legend-pct">${pct(drugVals[i],n)}</span></div>`).join('');
+
+  // Concerns bars
+  const concernMap = {};
+  d.forEach(r=>{ if(r.drugConcerns) r.drugConcerns.split(';').forEach(c=>{ c=c.trim(); concernMap[c]=(concernMap[c]||0)+1; }); });
+  const concernSorted = Object.entries(concernMap).sort((a,b)=>b[1]-a[1]);
+  const concContainer = document.getElementById('concern-bars');
+  const cMax = concernSorted[0]?.[1]||1;
+  concContainer.innerHTML = concernSorted.map(([k,v])=>`
+    <div class="concern-bar-row">
+      <div class="cb-top"><span class="cb-label">${k}</span><span class="cb-val">${v} (${pct(v,n)})</span></div>
+      <div class="cb-track"><div class="cb-fill" style="width:${Math.round(v/cMax*100)}%;background:${COLORS.red}CC"></div></div>
+    </div>`).join('');
+
+  // Drug by weight class
+  const wcs = ['Obese','Overweight','Normal'];
+  makeChart('ch-drug-weight','bar',wcs,[
+    {label:'Yes',data:wcs.map(w=>count(d.filter(r=>r.weightClass===w),'drugAccept','Yes')),backgroundColor:COLORS.o3+'CC',borderRadius:4},
+    {label:'Maybe',data:wcs.map(w=>count(d.filter(r=>r.weightClass===w),'drugAccept','Maybe')),backgroundColor:COLORS.o1+'CC',borderRadius:4},
+    {label:'No',data:wcs.map(w=>count(d.filter(r=>r.weightClass===w),'drugAccept','No')),backgroundColor:COLORS.red+'CC',borderRadius:4},
+  ],{legend:true});
+
+  // Treatment pref
+  const treatMap = {};
+  d.forEach(r=>{ if(r.treatmentPref) treatMap[r.treatmentPref]=(treatMap[r.treatmentPref]||0)+1; });
+  makeHBars(document.getElementById('treat-pref-bars'), Object.entries(treatMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({label:k,val:v,disp:`${v} (${pct(v,n)})`})), COLORS.o1);
+
+  // Awareness chart
+  const awMap = {'Fully aware':0,'Somewhat aware':0,'Not aware':0};
+  d.forEach(r=>{ if(r.awarenessRisk&&awMap[r.awarenessRisk]!==undefined) awMap[r.awarenessRisk]++; });
+  makeChart('ch-awareness','doughnut',Object.keys(awMap),[{data:Object.values(awMap),backgroundColor:[COLORS.o3+'CC',COLORS.o1+'CC',COLORS.red+'CC'],borderWidth:0}],{legend:true,cutout:'60%'});
+
+  // Obesity medical
+  const omBuckets = [1,2,3,4,5];
+  makeHBars(document.getElementById('obesity-medical-bars'),
+    omBuckets.map(v=>({label:`Score ${v}`,val:d.filter(r=>r.obesityMedical===v).length,disp:`${d.filter(r=>r.obesityMedical===v).length}`})),COLORS.o2);
+
+  // ---- P2 WORKPLACE ----
+  document.getElementById('p2n').textContent = n;
+  document.getElementById('p2-sit6').textContent = pct(d.filter(r=>r.sittingTime==='6-8 hours'||r.sittingTime==='>8 hours').length,n);
+  document.getElementById('p2-jobreduced').textContent = pct(d.filter(r=>r.jobReducedActivity==='Significantly'||r.jobReducedActivity==='Slightly').length,n);
+  document.getElementById('p2-noex').textContent = pct(count(d,'exerciseFreq','Never'),n);
+  document.getElementById('p2-lowex').textContent = pct(count(d,'exerciseFreq','1-2 days/ week'),n);
+
+  const sitLabels = ['<4 hours','4-6 hours','6-8 hours','>8 hours'];
+  makeChart('ch-sitting','bar',sitLabels,[{
+    data:sitLabels.map(s=>count(d,'sittingTime',s)),
+    backgroundColor:[COLORS.o3+'BB',COLORS.o1+'BB',COLORS.o2+'BB',COLORS.red+'BB'],
+    borderRadius:5
+  }],{legend:false});
+
+  const exLabels = ['Never','1-2 days/ week','3-4 days/week','Daily'];
+  const exColors = [COLORS.red+'BB',COLORS.o1+'BB',COLORS.o2+'BB',COLORS.o3+'BB'];
+  makeChart('ch-exercise','bar',exLabels,[{
+    data:exLabels.map(e=>count(d,'exerciseFreq',e)),
+    backgroundColor:exColors, borderRadius:5
+  }],{legend:false});
+
+  const wpData = d.filter(r=>r.occupation==='Working professional');
+  const wpSig = count(wpData,'jobReducedActivity','Significantly');
+  const wpSli = count(wpData,'jobReducedActivity','Slightly');
+  document.getElementById('wp-significantly').textContent = wpSig;
+  document.getElementById('wp-slightly').textContent = wpSli;
+  makeHBars(document.getElementById('jobreduced-bars'),[
+    {label:'Significantly',val:count(d,'jobReducedActivity','Significantly'),disp:`${count(d,'jobReducedActivity','Significantly')} (${pct(count(d,'jobReducedActivity','Significantly'),n)})`},
+    {label:'Slightly',val:count(d,'jobReducedActivity','Slightly'),disp:`${count(d,'jobReducedActivity','Slightly')} (${pct(count(d,'jobReducedActivity','Slightly'),n)})`},
+    {label:'No Impact',val:count(d,'jobReducedActivity','No'),disp:`${count(d,'jobReducedActivity','No')} (${pct(count(d,'jobReducedActivity','No'),n)})`},
+  ],COLORS.o2);
+
+  const seLabels = ['Never','Sometimes','Often','Always'];
+  const seColors = [COLORS.o3,COLORS.o1,COLORS.red,COLORS.purple];
+  makeHBars(document.getElementById('stress-eating-bars'),
+    seLabels.map((l,i)=>({label:l,val:count(d,'stressEating',l),disp:`${count(d,'stressEating',l)} (${pct(count(d,'stressEating',l),n)})`})),COLORS.purple);
+
+  const causeMap = {};
+  d.forEach(r=>{ if(r.weightGainCause) r.weightGainCause.split(';').forEach(c=>{c=c.trim().replace('Coombination of demographic factors','Demographics combo');causeMap[c]=(causeMap[c]||0)+1;}); });
+  makeHBars(document.getElementById('cause-bars'), Object.entries(causeMap).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v])=>({label:k,val:v,disp:`${v}`})),COLORS.o2);
+
+  // Sitting x weight
+  const wcLabels2 = ['Normal','Overweight','Obese'];
+  const sitGroups = ['<4 hours','4-6 hours','6-8 hours','>8 hours'];
+  const sitGCols = [COLORS.o3+'BB',COLORS.o1+'BB',COLORS.o2+'BB',COLORS.red+'BB'];
+  makeChart('ch-sit-weight','bar',wcLabels2,sitGroups.map((s,i)=>({
+    label:s, data:wcLabels2.map(w=>count(d.filter(r=>r.weightClass===w),'sittingTime',s)),
+    backgroundColor:sitGCols[i], borderRadius:4, barPercentage:.7
+  })),{legend:true});
+
+  // ---- P3 VITALITY ----
+  document.getElementById('p3n').textContent = n;
+  document.getElementById('p3-notserious').textContent = pct(d.filter(r=>r.weightNotSerious>=4).length,n);
+  document.getElementById('p3-joints').textContent = pct(count(d,'foodJointsCrowded','Yes'),n);
+  document.getElementById('p3-family').textContent = pct(count(d,'familyComments','Yes'),n);
+  document.getElementById('p3-unhealthy').textContent = pct(count(d,'neighbourhood','No'),n);
+  document.getElementById('fj-affected').textContent = count(d,'foodJointsAffect','Yes');
+
+  // Belief ratings
+  const beliefs = [
+    {label:'Weight above healthy range',key:'weightAware'},
+    {label:'Understands eating-weight link',key:'eatingAware'},
+    {label:'Has control over weight',key:'weightControl'},
+    {label:'Weight affects confidence',key:'weightConfidence'},
+    {label:'Frustrated by failed attempts',key:'weightFrustration'},
+  ];
+  document.getElementById('belief-ratings').innerHTML = beliefs.map(b=>{
+    const vals = d.filter(r=>r[b.key]!=null).map(r=>r[b.key]);
+    const a = vals.length ? (vals.reduce((x,y)=>x+y,0)/vals.length).toFixed(1) : '–';
+    const pctFill = a !== '–' ? Math.round(a/5*100) : 0;
+    return `<div class="rating-row">
+      <div class="rating-top"><span class="rating-label">${b.label}</span><span class="rating-avg">${a}/5</span></div>
+      <div class="rating-dots"><div style="height:5px;border-radius:20px;width:100%;background:var(--surface2)">
+        <div style="height:100%;border-radius:20px;width:${pctFill}%;background:${COLORS.o3};transition:width .7s"></div>
+      </div></div></div>`;
+  }).join('');
+
+  // Community
+  makeHBars(document.getElementById('community-bars'),[
+    {label:'Obesity rising in community (Yes)',val:count(d,'communityObesityRising','Yes'),disp:`${count(d,'communityObesityRising','Yes')} (${pct(count(d,'communityObesityRising','Yes'),n)})`},
+    {label:'Obesity rising (Maybe)',val:count(d,'communityObesityRising','Maybe'),disp:`${count(d,'communityObesityRising','Maybe')} (${pct(count(d,'communityObesityRising','Maybe'),n)})`},
+    {label:'Food joints crowded nearby',val:count(d,'foodJointsCrowded','Yes'),disp:`${count(d,'foodJointsCrowded','Yes')} (${pct(count(d,'foodJointsCrowded','Yes'),n)})`},
+    {label:'Family comments on weight',val:count(d,'familyComments','Yes'),disp:`${count(d,'familyComments','Yes')} (${pct(count(d,'familyComments','Yes'),n)})`},
+    {label:'Pollution reduced nature exposure',val:count(d,'pollutionNature','Yes'),disp:`${count(d,'pollutionNature','Yes')} (${pct(count(d,'pollutionNature','Yes'),n)})`},
+  ],COLORS.o3);
+
+  // Weight start
+  const wsLabels = ['Childhood','Teenage','Early Adulthood','Recent years'];
+  const wsColors = [COLORS.purple+'CC',COLORS.o2+'CC',COLORS.o1+'CC',COLORS.red+'CC'];
+  makeChart('ch-weightstart','doughnut',wsLabels,[{data:wsLabels.map(l=>count(d,'weightStart',l)),backgroundColor:wsColors,borderWidth:0}],{legend:true,cutout:'55%'});
+
+  // Confidence chart
+  const confBuckets = [1,2,3,4,5];
+  makeChart('ch-confidence','bar',confBuckets.map(v=>`Score ${v}`),[{
+    data:confBuckets.map(v=>d.filter(r=>r.weightConfidence===v).length),
+    backgroundColor:confBuckets.map(v=>v<=2?COLORS.o3+'CC':v===3?COLORS.o1+'CC':COLORS.red+'CC'),
+    borderRadius:5
+  }],{legend:false});
+
+  // Methods tried
+  const methodMap = {};
+  d.forEach(r=>{ if(r.methodsTried) r.methodsTried.split(';').forEach(m=>{m=m.trim();methodMap[m]=(methodMap[m]||0)+1;}); });
+  methodMap['None'] = d.filter(r=>!r.methodsTried).length;
+  makeHBars(document.getElementById('methods-bars'), Object.entries(methodMap).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({label:k,val:v,disp:`${v}`})),COLORS.o3);
+
+  // Neighbourhood donut
+  const nbVals = [count(d,'neighbourhood','Yes'),count(d,'neighbourhood','Maybe'),count(d,'neighbourhood','No')];
+  const nbColors = [COLORS.o3+'CC',COLORS.o1+'CC',COLORS.red+'CC'];
+  makeChart('ch-neighbourhood','doughnut',['Yes','Maybe','No'],[{data:nbVals,backgroundColor:nbColors,borderWidth:0}],{legend:false,cutout:'65%'});
+  document.getElementById('neighbourhood-legend').innerHTML = ['Yes (Healthy)','Maybe','No (Unhealthy)'].map((l,i)=>`
+    <div class="legend-item"><span class="legend-dot" style="background:${nbColors[i]}"></span>${l}<span class="legend-pct">${pct(nbVals[i],n)}</span></div>`).join('');
+
+  // Food joints
+  makeHBars(document.getElementById('foodjoints-bars'),[
+    {label:'Crowded food joints nearby (Yes)',val:count(d,'foodJointsCrowded','Yes'),disp:`${count(d,'foodJointsCrowded','Yes')} (${pct(count(d,'foodJointsCrowded','Yes'),n)})`},
+    {label:'Affects food habits (Yes)',val:count(d,'foodJointsAffect','Yes'),disp:`${count(d,'foodJointsAffect','Yes')} (${pct(count(d,'foodJointsAffect','Yes'),n)})`},
+    {label:'Affects food habits (Maybe)',val:count(d,'foodJointsAffect','Maybe'),disp:`${count(d,'foodJointsAffect','Maybe')} (${pct(count(d,'foodJointsAffect','Maybe'),n)})`},
+    {label:'Does not affect (No)',val:count(d,'foodJointsAffect','No'),disp:`${count(d,'foodJointsAffect','No')} (${pct(count(d,'foodJointsAffect','No'),n)})`},
+  ],COLORS.o3);
+
+  // ---- P4 DEMOGRAPHICS ----
+  document.getElementById('p4n').textContent = n;
+  const bmis = d.filter(r=>r.bmi!=null).map(r=>r.bmi);
+  document.getElementById('p4-bmi').textContent = bmis.length ? (bmis.reduce((a,b)=>a+b,0)/bmis.length).toFixed(1) : '–';
+  document.getElementById('p4-obese').textContent = pct(count(d,'weightClass','Obese'),n);
+  document.getElementById('p4-overweight').textContent = pct(count(d,'weightClass','Overweight'),n);
+  document.getElementById('p4-familyhx').textContent = pct(count(d,'familyHistory','Yes'),n);
+
+  // Age chart
+  const ageBuckets = ['Under 20','20–29','30–39','40–49','50–59','60+'];
+  const ageColors = ageBuckets.map((_,i)=>[COLORS.o3,COLORS.o2,COLORS.o1,COLORS.red,COLORS.purple,COLORS.o3][i]+'CC');
+  makeChart('ch-age','bar',ageBuckets,[{data:ageBuckets.map(ag=>count(d,'ageGroup',ag)),backgroundColor:ageColors,borderRadius:5}],{legend:false});
+
+  // Gender donut
+  const gVals = [count(d,'gender','Female'),count(d,'gender','Male')];
+  const gColors = [COLORS.purple+'CC',COLORS.o2+'CC'];
+  makeChart('ch-gender','doughnut',['Female','Male'],[{data:gVals,backgroundColor:gColors,borderWidth:0}],{legend:false,cutout:'65%'});
+  document.getElementById('gender-legend').innerHTML = ['Female','Male'].map((l,i)=>`
+    <div class="legend-item"><span class="legend-dot" style="background:${gColors[i]}"></span>${l}<span class="legend-pct">${pct(gVals[i],n)}</span></div>`).join('');
+
+  // Occupation bars
+  makeHBars(document.getElementById('occ-bars'),[
+    {label:'Working professional',val:count(d,'occupation','Working professional'),disp:`${count(d,'occupation','Working professional')} (${pct(count(d,'occupation','Working professional'),n)})`},
+    {label:'Student',val:count(d,'occupation','Student'),disp:`${count(d,'occupation','Student')} (${pct(count(d,'occupation','Student'),n)})`},
+    {label:'Homemaker',val:count(d,'occupation','Homemaker'),disp:`${count(d,'occupation','Homemaker')} (${pct(count(d,'occupation','Homemaker'),n)})`},
+    {label:'Retired',val:count(d,'occupation','Retired'),disp:`${count(d,'occupation','Retired')} (${pct(count(d,'occupation','Retired'),n)})`},
+  ],COLORS.o2);
+
+  // Weight class donut
+  const wcVals2 = ['Obese','Overweight','Normal','Underweight'].map(w=>count(d,'weightClass',w));
+  makeChart('ch-wclass','doughnut',['Obese','Overweight','Normal','Underweight'],[{
+    data:wcVals2, backgroundColor:[COLORS.red+'CC',COLORS.o1+'CC',COLORS.o3+'CC',COLORS.o2+'CC'], borderWidth:0
+  }],{legend:true,cutout:'55%'});
+
+  // Checkup
+  makeHBars(document.getElementById('checkup-bars'),[
+    {label:'Yes – Regular checkups',val:count(d,'regularCheckup','Yes'),disp:`${count(d,'regularCheckup','Yes')} (${pct(count(d,'regularCheckup','Yes'),n)})`},
+    {label:'No – No regular checkups',val:count(d,'regularCheckup','No'),disp:`${count(d,'regularCheckup','No')} (${pct(count(d,'regularCheckup','No'),n)})`},
+  ],COLORS.o3);
+}
+
+// Init
+renderAll();
+</script>
+</body>
+</html>
